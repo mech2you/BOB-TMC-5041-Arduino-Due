@@ -1,0 +1,74 @@
+
+const char PROGMEM SpiStatusNachrichtAnfang[]  = {"---------------SpiStatusBit---------------\r\n"};
+const char PROGMEM SpiStatusNachrichtEnde[]  = {"---------------SpiStatusBit END---------------\r\n"};
+
+const char PROGMEM SpiStatusBit1[] = "reset_flag -> GSTAT[0] 1: Signals, that a reset has occurred (clear by reading GSTAT)\r\n";
+const char PROGMEM SpiStatusBit2[] = "driver_error -> GSTAT[1] 1: Signals driver 1 driver error (clear by reading GSTAT)\r\n";
+const char PROGMEM SpiStatusBit3[] = "sg2 -> DRV_STATUS[24] 1: Signals StallGuard flag active\r\n";
+const char PROGMEM SpiStatusBit4[] = "standstill -> DRV_STATUS[31] 1: Signals motor stand still\r\n";
+const char PROGMEM SpiStatusBit5[] = "velocity_reached -> RAMP_STAT[8] 1: Signals target velocity reached (motion controller only)\r\n";
+const char PROGMEM SpiStatusBit6[] = "position_reached -> RAMP_STAT[9] 1: Signals target position reached (motion controller only)\r\n";
+const char PROGMEM SpiStatusBit7[] = "status_stop_l -> RAMP_STAT[0] 1: Signals stop left switch status (motion controller only)\r\n";
+const char PROGMEM SpiStatusBit8[] = "status_stop_r -> RAMP_STAT[1] 1: Signals stop right switch status (motion controller only)\r\n";
+void AusgabeNachricht(const char signMessage[]){
+  char myChar;
+      for (byte k = 0; k < strlen_P(signMessage); k++) {
+      myChar = pgm_read_byte_near(signMessage + k);
+      Serial.print(myChar);
+    }
+}
+
+void SpiStatusBit(byte x8BitSpiStatus) {
+  AusgabeNachricht(SpiStatusNachrichtAnfang);
+  // Bit
+  if ((x8BitSpiStatus & 0x01) == 0x01) { // BIT 0 vom SPI_STatus ist 1
+    AusgabeNachricht(SpiStatusBit1);
+  }
+  if ((x8BitSpiStatus & 0x02) == 0x02) {
+    AusgabeNachricht(SpiStatusBit2);
+  }
+  if ((x8BitSpiStatus & 0x04) == 0x04) {
+    AusgabeNachricht(SpiStatusBit3);
+  }
+  if ((x8BitSpiStatus & 0x08) == 0x08) {
+    AusgabeNachricht(SpiStatusBit4);
+  }
+
+  if ((x8BitSpiStatus & 0x10) == 0x10) {
+    AusgabeNachricht(SpiStatusBit5);
+  }
+  if ((x8BitSpiStatus & 0x20) == 0x20) {
+    AusgabeNachricht(SpiStatusBit6);
+  }
+  if ((x8BitSpiStatus & 0x40) == 0x40) {
+    AusgabeNachricht(SpiStatusBit7);
+  }
+  if ((x8BitSpiStatus & 0x80) == 0x80) { // BIT 7 vom SPI_STatus ist 1
+    AusgabeNachricht(SpiStatusBit8);
+  }
+  AusgabeNachricht(SpiStatusNachrichtEnde);
+}
+String AusgabeRegister(unsigned long x32BitRegisters, unsigned long x32BitRegistersMaske, String msg) {
+  String error = "Status->";
+  if ((x32BitRegisters & x32BitRegistersMaske) == x32BitRegistersMaske) {
+    error += "1";
+  } else {
+    error += "0";
+  }
+  error += " Nachricht: ";
+  error = error + msg + "\r\n";
+  return error;
+}
+//ihold von 0-31 irun von 0-31 iholddeley von 0-15 wobei 0
+DataOut IholdIrun(unsigned long ihold,unsigned long irun,unsigned long iholddelay, bool rw) {
+  DataOut out;
+  if (rw) {
+     out = { 0x10, 0x00000000 };
+  } else {
+     out = { 0x90, 0x00000000 };
+  }
+  out.daten |= ihold;
+  out.daten |= irun << 8;
+  out.daten |= iholddelay << 16;
+  return out;
+}
